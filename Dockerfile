@@ -183,6 +183,10 @@ RUN pip3 install uv && \
     git+https://github.com/hydroshare/nbfetch.git@hspuller-auth \
     dask_labextension \
     #---------------------------------------------
+    # Ngen: calibration
+    #---------------------------------------------
+    spotpy \
+    #---------------------------------------------
     # 2i2c: To enable venv kernels in Jupyter
     #---------------------------------------------
     #ipykernel
