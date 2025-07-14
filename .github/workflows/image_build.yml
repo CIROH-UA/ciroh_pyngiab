@@ -1,0 +1,64 @@
+name: Trigger Quay.io Image Build
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: 'Docker tag to apply (default: staging)'
+        required: false
+        default: 'staging'
+      branch:
+        description: 'Git branch to build from (default: staging)'
+        required: false
+        default: 'staging'
+
+jobs:
+  trigger-quay-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Quay.io build using Robot Account
+        env:
+          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+          QUAY_REPO: ${{ secrets.QUAY_REPO }}
+        run: |
+          # Install dependencies
+          sudo apt-get update && sudo apt-get install -y curl jq
+
+          # Base64 encode robot credentials
+          AUTH=$(echo -n "${QUAY_ROBOT_USERNAME}:${QUAY_ROBOT_TOKEN}" | base64 | tr -d '\n')
+
+          # Set tag and branch from input or default to 'staging'
+          TAG=${INPUT_DOCKER_TAG:-staging}
+          BRANCH=${INPUT_BRANCH:-staging}
+
+          # Trigger build
+          response=$(curl -s -X POST \
+            -H "Authorization: Basic ${AUTH}" \
+            -H "Content-Type: application/json" \
+            "https://quay.io/api/v1/repository/${QUAY_REPO}/build/" \
+            -d '{
+              "docker_tags": ["'"${TAG}"'"],
+              "branch": "'"${BRANCH}"'",
+              "commit": "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit || github.sha }}"
+            }')
+
+          # Check response
+          if echo "$response" | jq -e '.error_message' >/dev/null; then
+            echo "Error triggering build: $(echo "$response" | jq -r '.error_message')"
+            exit 1
+          else
+            build_id=$(echo "$response" | jq -r '.id')
+            echo "Build triggered successfully. Build ID: $build_id"
+            echo "build_id=$build_id" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show build status
+        if: always()
+        run: |
+          echo "Build ID: ${{ steps.trigger-quay-build.outputs.build_id }}"
