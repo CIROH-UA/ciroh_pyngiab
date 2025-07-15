@@ -1,64 +1,61 @@
-name: Trigger Quay.io Image Build
+name: Build and Push to Quay.io
 
 on:
   push:
+    branches: 
+      - staging
+    tags: [ 'v*' ]
+  pull_request:
     branches: [ staging ]
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual triggering
     inputs:
-      docker_tag:
-        description: 'Docker tag to apply (default: staging)'
+      tag:
+        description: 'Custom tag to apply (optional)'
         required: false
-        default: 'staging'
-      branch:
-        description: 'Git branch to build from (default: staging)'
-        required: false
-        default: 'staging'
+        default: 'manual'
+
+env:
+  IMAGE_NAME: ngiab-2i2c
+  QUAY_ORG: fbaig25
 
 jobs:
-  trigger-quay-build:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Trigger Quay.io build using Robot Account
-        env:
-          QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
-          QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
-          QUAY_REPO: ${{ secrets.QUAY_REPO }}
-        run: |
-          # Install dependencies
-          sudo apt-get update && sudo apt-get install -y curl jq
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
-          # Base64 encode robot credentials
-          AUTH=$(echo -n "${QUAY_ROBOT_USERNAME}:${QUAY_ROBOT_TOKEN}" | base64 | tr -d '\n')
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-          # Set tag and branch from input or default to 'staging'
-          TAG=${INPUT_DOCKER_TAG:-staging}
-          BRANCH=${INPUT_BRANCH:-staging}
+    - name: Login to Quay.io
+      uses: docker/login-action@v3
+      with:
+        registry: quay.io
+        username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+        password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
-          # Trigger build
-          response=$(curl -s -X POST \
-            -H "Authorization: Basic ${AUTH}" \
-            -H "Content-Type: application/json" \
-            "https://quay.io/api/v1/repository/${QUAY_REPO}/build/" \
-            -d '{
-              "docker_tags": ["'"${TAG}"'"],
-              "branch": "'"${BRANCH}"'",
-              "commit": "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.commit || github.sha }}"
-            }')
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: quay.io/${{ env.QUAY_ORG }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha
+          ${{ github.event_name == 'workflow_dispatch' && format('type=raw,value={0}', inputs.tag) || '' }}
 
-          # Check response
-          if echo "$response" | jq -e '.error_message' >/dev/null; then
-            echo "Error triggering build: $(echo "$response" | jq -r '.error_message')"
-            exit 1
-          else
-            build_id=$(echo "$response" | jq -r '.id')
-            echo "Build triggered successfully. Build ID: $build_id"
-            echo "build_id=$build_id" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Show build status
-        if: always()
-        run: |
-          echo "Build ID: ${{ steps.trigger-quay-build.outputs.build_id }}"
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
