@@ -19,6 +19,8 @@ except ImportError:
 from update_parameters import update_cfe_parameters  # user-defined module
 from pyngiab import PyNGIAB  # model wrapper
 
+from ipyparallel import Cluster
+
 # === Utility Function to Retrieve and Preprocess USGS Streamflow ===
 def process_usgs_streamflow(site, start, end, output_path=None):
     start = pd.to_datetime(start) - pd.Timedelta(days=1)
@@ -141,21 +143,92 @@ class SpotpySetup:
         beta = np.mean(sim) / np.mean(obs)
         return 1 - np.sqrt((r - 1)**2 + (alpha - 1)**2 + (beta - 1)**2)
 
+'''
+def run_spotpy_mpi(gage_id, start_date, end_date, training_start_date,
+                   observed_flow_path, troute_output_path, cfe_dir,
+                   data_dir, feature_id, repetitions=25):
+    # Initialize MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
 
+    if rank == 0:
+        print(f"Running with {comm.Get_size()} MPI processes")
+        pass
+
+    # run simulation
+    run_spotpy(gage_id, start_date, end_date, training_start_date,
+               observed_flow_path, troute_output_path, cfe_dir,
+               data_dir, feature_id, repetitions)
+    
+    if rank == 0:
+        print("Optimization complete")
+        #best_params = spotpy.analyser.get_best_parameterset(
+        #    sampler.getdata(), maximize=False
+        #)
+        #print("Best parameters:", best_params)
+    
+        results = spotpy.analyser.load_csv_results(f"spotpy_results_{gage_id}")
+        best_params = spotpy.analyser.get_best_parameterset(results, maximize=False)
+
+        # Plot objective function trace
+        fig = plt.figure(1, figsize=(9, 5))
+        plt.plot(results['like1'])
+        plt.ylabel('KGE')
+        plt.xlabel('Iteration')
+        fig.savefig('/home/jovyan/spotpy/SCEUA_objectivefunctiontrace.png', dpi=300)
+    
+        # Plot best model run
+        bestindex, bestobjf = spotpy.analyser.get_minlikeindex(results)
+        best_model_run = results[bestindex]
+        fields = [word for word in best_model_run.dtype.names if word.startswith('sim')]
+        best_simulation = list(best_model_run[fields])
+        time_index = pd.date_range(start=training_start_date, periods=len(best_simulation), freq='D')
+    
+        fig = plt.figure(figsize=(16, 9))
+        ax = plt.subplot(1, 1, 1)
+        ax.plot(time_index, best_simulation, color='black', linestyle='solid', label='Best objf.=' + str(bestobjf))
+        ax.plot(time_index, setup.evaluation(), 'r.', markersize=3, label='Observation data')
+        plt.xlabel('Date')
+        plt.ylabel('Streamflow (m3/sec)')
+        plt.legend(loc='upper right')
+        fig.savefig('/home/jovyan/spotpy/SCEUA_best_modelrun.png', dpi=300)
+    
+        # print("\nBest parameter set:")
+        # for name, value in zip(setup.parameters()[0], best_params[1:-1]):
+        #     print(f"{name}: {value}")
+    
+        print(f"Best objective function value: {setup.best_like}")
+        print(f"Best run ID: {setup.best_run}")
+    
+        return best_params
+    
+    pass
+'''
 # === Function to Run SPOTPY Calibration ===
 def run_spotpy(gage_id, start_date, end_date, training_start_date,
                observed_flow_path, troute_output_path, cfe_dir,
                data_dir, feature_id, repetitions=25):
-
+    
     model_setup = NextGenSetup(gage_id, start_date, end_date, training_start_date,
                                observed_flow_path, troute_output_path, cfe_dir)
     setup = SpotpySetup(model_setup, data_dir, feature_id)
+
+
     sampler = spotpy.algorithms.sceua(setup, dbname=f"spotpy_results_{gage_id}", dbformat="csv")
+    # MPI version
+    #sampler = spotpy.algorithms.sceua(setup, 
+    #                                  dbname=f"spotpy_results_{gage_id}", 
+    #                                  dbformat="csv", 
+    #                                  parallel='mpi'
+    #                                 )
     sampler.sample(repetitions, ngs=20)
 
     results = spotpy.analyser.load_csv_results(f"spotpy_results_{gage_id}")
     best_params = spotpy.analyser.get_best_parameterset(results, maximize=False)
 
+    return results, best_params
+
+def plot_spotpy_results(results):
     # Plot objective function trace
     fig = plt.figure(1, figsize=(9, 5))
     plt.plot(results['like1'])
@@ -185,5 +258,3 @@ def run_spotpy(gage_id, start_date, end_date, training_start_date,
 
     print(f"Best objective function value: {setup.best_like}")
     print(f"Best run ID: {setup.best_run}")
-
-    return best_params

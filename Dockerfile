@@ -138,6 +138,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 ENV FC=gfortran NETCDF=/usr/include PATH=$PATH:/usr/bin/mpich
 
+# Set softlink for mpi (required for spotpy calibration)
+#RUN ln -s /usr/lib/x86_64-linux-gnu/libmpi.so /usr/lib/x86_64-linux-gnu/libmpi.so.12
+
 # Install firefox for interactive workflows
 RUN mkdir -p /opt/firefox && \
     wget -O /tmp/firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" && \
@@ -183,9 +186,11 @@ RUN pip3 install uv && \
     git+https://github.com/hydroshare/nbfetch.git@hspuller-auth \
     dask_labextension \
     #---------------------------------------------
-    # Ngen: calibration
+    # Ngen: calibration spotpy
     #---------------------------------------------
     spotpy \
+    # mpi4py \
+    # ipyparallel \
     #---------------------------------------------
     # 2i2c: To enable venv kernels in Jupyter
     #---------------------------------------------
@@ -230,6 +235,10 @@ RUN uv venv --system-site-packages \
     netCDF4>=1.6.5 \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     'pydantic<2' \
+    #---------------------------------------------
+    # Ngen: calibration ngen-cal
+    #---------------------------------------------
+    #"git+https://github.com/noaa-owp/ngen-cal@master#egg=ngen_cal&subdirectory=python/ngen_cal" \
     #---------------------------------------------
     # Setup and install ngiab_data_preprocess module to allow preparing data for ngiab
     #   - [Optional] Download default hydrofabric for ngiab_data_preprocess
