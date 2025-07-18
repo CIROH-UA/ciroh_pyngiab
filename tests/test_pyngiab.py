@@ -22,7 +22,8 @@ class TestPyNGIAB(unittest.TestCase):
         try:
             test_ngiab = PyNGIAB(self._test_data, serial_execution_mode=True)
             run = test_ngiab.run()
-        except:
+        except Exception as e:
+            print(f'An error occurred: {str(e)}')
             run = False
         self.assertEqual(run, True)
         pass
@@ -31,7 +32,8 @@ class TestPyNGIAB(unittest.TestCase):
         try:
             test_ngiab = PyNGIAB(self._test_data)
             run = test_ngiab.run()
-        except:
+        except Exception as e:
+            print(f'An error occurred: {str(e)}')
             run = False
         self.assertEqual(run, True)
         pass
