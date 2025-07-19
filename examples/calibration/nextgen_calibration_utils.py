@@ -19,8 +19,6 @@ except ImportError:
 from update_parameters import update_cfe_parameters  # user-defined module
 from pyngiab import PyNGIAB  # model wrapper
 
-from ipyparallel import Cluster
-
 # === Utility Function to Retrieve and Preprocess USGS Streamflow ===
 def process_usgs_streamflow(site, start, end, output_path=None):
     start = pd.to_datetime(start) - pd.Timedelta(days=1)
@@ -147,6 +145,7 @@ class SpotpySetup:
 def run_spotpy_mpi(gage_id, start_date, end_date, training_start_date,
                    observed_flow_path, troute_output_path, cfe_dir,
                    data_dir, feature_id, repetitions=25):
+    #from ipyparallel import Cluster
     # Initialize MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -226,9 +225,12 @@ def run_spotpy(gage_id, start_date, end_date, training_start_date,
     results = spotpy.analyser.load_csv_results(f"spotpy_results_{gage_id}")
     best_params = spotpy.analyser.get_best_parameterset(results, maximize=False)
 
+    print(f"Best objective function value: {setup.best_like}")
+    print(f"Best run ID: {setup.best_run}")
+    
     return results, best_params
 
-def plot_spotpy_results(results):
+def plot_spotpy_results(results, training_start_date):
     # Plot objective function trace
     fig = plt.figure(1, figsize=(9, 5))
     plt.plot(results['like1'])
@@ -255,6 +257,3 @@ def plot_spotpy_results(results):
     # print("\nBest parameter set:")
     # for name, value in zip(setup.parameters()[0], best_params[1:-1]):
     #     print(f"{name}: {value}")
-
-    print(f"Best objective function value: {setup.best_like}")
-    print(f"Best run ID: {setup.best_run}")
