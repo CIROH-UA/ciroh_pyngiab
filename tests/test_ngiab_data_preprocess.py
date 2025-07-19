@@ -9,7 +9,8 @@ class TestNGIABDataPreprocess(unittest.TestCase):
                 .generate_forcings('2022-01-01', '2022-01-28') \
                 .generate_realization() \
                 .run()
-        except:
+        except Exception as e:
+            print(f'An error occurred: {str(e)}')
             p = False
         self.assertEqual(p, True)
         pass
