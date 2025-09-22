@@ -185,6 +185,7 @@ RUN pip3 install uv && \
     #---------------------------------------------
     git+https://github.com/hydroshare/nbfetch.git@hspuller-auth \
     dask_labextension \
+    hsfiles-jupyter \
     #---------------------------------------------
     # Ngen: calibration spotpy
     #---------------------------------------------
@@ -198,8 +199,10 @@ RUN pip3 install uv && \
     #---------------------------------------------
     # Misc:
     #   - TEEHR: Download the required JAR files for Spark to interact with AWS S3.
+    #   - Link hsfiles-jupyter to JupyterLab
     #---------------------------------------------
-    && uv run python -m teehr.utils.install_spark_jars
+    && uv run python -m teehr.utils.install_spark_jars \
+    && uv run python -m hsfiles_jupyter
 
 RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
 
