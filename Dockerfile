@@ -95,6 +95,14 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin &&
     cd /dmod/bin && \
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 ###################################
+# [LSTM-Update]
+FROM base AS lstm_weights
+RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+# replace the relative path with the absolute path in the model config files
+RUN shopt -s globstar
+RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
+
+###################################
 FROM pangeo/pangeo-notebook:2024.04.08 AS final
 
 USER root
@@ -107,8 +115,8 @@ COPY --from=restructure_files /dmod /dmod
 COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 
-# COPY --from=troute_build /tmp/troute_url /ngen/troute_url
-# COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+#COPY --from=troute_build /tmp/troute_url /ngen/troute_url
+#COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 
 # Install runtime-only dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -137,6 +145,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set environment for ngen
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 ENV FC=gfortran NETCDF=/usr/include PATH=$PATH:/usr/bin/mpich
+# [LSTM-Update]
+ENV UV_COMPILE_BYTECODE=1
 
 # Set softlink for mpi (required for spotpy calibration)
 #RUN ln -s /usr/lib/x86_64-linux-gnu/libmpi.so /usr/lib/x86_64-linux-gnu/libmpi.so.12
@@ -235,7 +245,7 @@ RUN uv venv --system-site-packages \
     && uv pip install --no-cache-dir \
     /tmp/*.whl \
     #netCDF4==1.6.3 \
-    netCDF4>=1.6.5 \
+    'netCDF4>=1.6.5' \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     'pydantic<2' \
     #---------------------------------------------
@@ -250,6 +260,10 @@ RUN uv venv --system-site-packages \
     #&& uv run python -c "from data_sources.source_validation import download_and_update_hf; \
     #			 download_and_update_hf();" \
     && rm -rf /tmp/*.whl
+
+# [LSTM-Update] Replace the noaa-owp example weights with jmframes
+RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
+COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 # Make this venv available as JupyterHub kernel
 # ENV PATH=/ngen/.venv/bin:$PATH
