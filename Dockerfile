@@ -170,7 +170,7 @@ RUN pip3 install uv && \
     uv pip install --system --no-cache-dir \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     jupyterlab_vim \
-    teehr==0.4.* \
+    teehr==0.5.* \
     git-lfs==1.6 \
     #---------------------------------------------
     # 2i2c: Install GIS packages
@@ -244,7 +244,6 @@ RUN uv venv --system-site-packages \
           /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu \
     && uv pip install --no-cache-dir \
     /tmp/*.whl \
-    #netCDF4==1.6.3 \
     'netCDF4>=1.6.5' \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     'pydantic<2' \
@@ -256,7 +255,7 @@ RUN uv venv --system-site-packages \
     # Setup and install ngiab_data_preprocess module to allow preparing data for ngiab
     #   - [Optional] Download default hydrofabric for ngiab_data_preprocess
     #---------------------------------------------
-    ngiab_data_preprocess==4.2.* \
+    ngiab_data_preprocess==4.6.* \
     #&& uv run python -c "from data_sources.source_validation import download_and_update_hf; \
     #			 download_and_update_hf();" \
     && rm -rf /tmp/*.whl
