@@ -51,7 +51,12 @@ jobs:
           type=semver,pattern={{major}}
           type=sha
           ${{ github.event_name == 'workflow_dispatch' && format('type=raw,value={0}', inputs.tag) || '' }}
-
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        docker system prune -af
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
