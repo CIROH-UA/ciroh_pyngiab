@@ -11,8 +11,16 @@ class DataSource(Enum):
 class PyNGIABDataPreprocess:
     def __init__(self,
                  input_feature: str,
-                 data_source: DataSource=DataSource.NWM_RETRO_V3):
+                 data_source: DataSource=DataSource.NWM_RETRO_V3,
+                 hydrofabric_path: str='~/.ngiab/'):
 
+        # Download hydrofabric if not available in default location
+        if not os.path.isdir(os.path.expanduser(hydrofabric_path)):
+            from data_sources.source_validation import download_and_update_hf
+            download_and_update_hf()
+            from data_sources.source_validation import file_paths
+            file_paths.set_working_dir('~/ngiab_preprocess_output/')
+        
         self._date_format = '%Y-%m-%d'
 
         self._cmd = ['python', '-m', 'ngiab_data_cli', '-i', input_feature]
