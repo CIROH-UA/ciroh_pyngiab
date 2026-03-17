@@ -175,6 +175,7 @@ RUN pip3 install uv && \
     #---------------------------------------------
     # 2i2c: Install GIS packages
     #---------------------------------------------
+    dask==2025.12.0 distributed==2025.12.0 \
     spatialpandas \
     easydev \
     colormap \
@@ -255,7 +256,8 @@ RUN uv venv --system-site-packages \
     # Setup and install ngiab_data_preprocess module to allow preparing data for ngiab
     #   - [Optional] Download default hydrofabric for ngiab_data_preprocess
     #---------------------------------------------
-    ngiab_data_preprocess==4.6.5 \
+    ngiab_data_preprocess==4.6.7 \
+    'pandas>=2.0,<3.0' \
     #&& uv run python -c "from data_sources.source_validation import download_and_update_hf; \
     #			 download_and_update_hf();" \
     && rm -rf /tmp/*.whl
