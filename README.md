@@ -1,32 +1,29 @@
 # PyNGIAB
 
-**Stable JupyterHub Compatible NGIAB:** https://github.com/CIROH-UA/awi-ciroh-image/tree/ngen-2i2c 
-
-[!Note] This repository should be treated as having the latest (possibly buggy/nightly build) versions of the two main components of PyNGIAB.
-
----
-
 PyNGIAB is designed to allow execution of an end-to-end hydrologic modeling workflow using the [Nextgen framework](https://github.com/NOAA-OWP/ngen) in Python from a Jupyter environment. To this end, there are two major components of PyNGIAB
 
-1. JupyterHub (e.g. 2i2c) compatible NGIAB.
+---
+## 1. JupyterHub compatible NGIAB.
 
-Most JupyterHub environments are Ubuntu based whereas [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra) is built on `rockylinux9` as base image. This repository contains scripts to create modified versions of NGIAB compatible with Jupyter based on `pangeo/pangeo-notebook` image.
+Most JupyterHub environments are Ubuntu based whereas [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra) is built on `rockylinux9` as base image. This repository contains scripts to create modified versions of NGIAB compatible with Jupyter based on `pangeo/pangeo-notebook` image. 
 
-2. Python wrapper libraries for NGIAB.
+**Stable JupyterHub Compatible NGIAB:** https://github.com/CIROH-UA/awi-ciroh-image/tree/ngen-2i2c
 
-Python wrappers for [data preprocessing](https://github.com/CIROH-UA/NGIAB_data_preprocess) and [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra)'s model execution shell scripts. This facilitates NGIAB invocation directly from Jupyter environment without the need to execute terminal commands.
-
-
-## JupyterHub (e.g. 2i2c) compatible NGIAB
-The JupyterHub environment with pre-configured NGIAB can be accessed via 
+<details>
+<summary> Working with JupyterHub compatible NGIAB image </summary>
+  
+#### JupyterHub environment with pre-configured NGIAB 
 
 - [CIROH 2i2c JupyterHub Production](http://staging.ciroh.awi.2i2c.cloud/)
+- [Upcoming] [The I-GUIDE Platform JupyterHub](https://jupyter.iguide.illinois.edu/)
 - [CIROH 2i2c JupyterHub Staging/Dev](http://staging.ciroh.awi.2i2c.cloud/)
-- Run Local JupyterHub
-  - A compiled image is available at [https://quay.io/repository/fbaig25/ngiab-2i2c](https://quay.io/repository/fbaig25/ngiab-2i2c). Alternatively, you can use following to build local image
-    - `Dockerfile:` Creates `pangeo/pangeo-notebook:2024.04.08` based NGIAB image. The image also adheres to [template](https://github.com/CIROH-UA/awi-ciroh-image/tree/main) required for 2i2c JupyterHub environment provided by CIROH.
-    - `docker_run.sh`: Builds a local image with `Jupyter`, `ngen` and `2i2c` packages.
-    - Once built successfully, Jupyter interface can usually be accessed at `http://127.0.0.1:8888/`
+
+#### Build from source
+- A compiled development/staging image is available at [https://quay.io/repository/fbaig25/ngiab-2i2c](https://quay.io/repository/fbaig25/ngiab-2i2c).
+- Alternatively, you can use following to build local image
+  - `Dockerfile:` Creates `pangeo/pangeo-notebook:2024.04.08` based NGIAB image. The image also adheres to [template](https://github.com/CIROH-UA/awi-ciroh-image/tree/main) required for 2i2c JupyterHub environment provided by CIROH.
+  - `docker_run.sh`: Builds a local image with `Jupyter`, `ngen` and `2i2c` packages.
+  - Once built successfully, Jupyter interface can usually be accessed at `http://127.0.0.1:8888/`
   - Local Jupyter environment with `ngen` can be launched using following (Make sure to mount appropriate data directory) 
 ```
 docker run -it \
@@ -35,10 +32,12 @@ docker run -it \
        quay.io/fbaig25/ngiab-2i2c:latest \
        jupyter lab --ip 0.0.0.0 /shared
 ```
-- [Upcoming] [The I-GUIDE Platform JupyterHub](https://jupyter.iguide.illinois.edu/)
+</details>
 
+---
+## 2. Python wrapper libraries for NGIAB.
 
-## Python wrapper libraries
+Python wrappers for [data preprocessing](https://github.com/CIROH-UA/NGIAB_data_preprocess) and [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra)'s model execution shell scripts. This facilitates NGIAB invocation directly from Jupyter environment without the need to execute terminal commands.
 
 If not available, `PyNGIAB` module can be installed via 
 ```bash
