@@ -95,6 +95,14 @@ RUN mkdir -p /dmod/datasets /dmod/datasets/static /dmod/shared_libs /dmod/bin &&
     cd /dmod/bin && \
     (stat ngen-parallel && ln -s ngen-parallel ngen) || (stat ngen-serial && ln -s ngen-serial ngen)
 ###################################
+# [LSTM-Update]
+FROM base AS lstm_weights
+RUN git clone --depth=1 --branch example_weights https://github.com/ciroh-ua/lstm.git /lstm_weights
+# replace the relative path with the absolute path in the model config files
+RUN shopt -s globstar
+RUN sed -i 's|\.\.|/ngen/ngen/extern/lstm|g' /lstm_weights/trained_neuralhydrology_models/**/config.yml
+
+###################################
 FROM pangeo/pangeo-notebook:2024.04.08 AS final
 
 USER root
@@ -107,8 +115,8 @@ COPY --from=restructure_files /dmod /dmod
 COPY --from=troute_build /ngen/t-route/src/troute-*/dist/*.whl /tmp/
 COPY --from=ngen_clone /ngen/ngen/extern/lstm/lstm /ngen/ngen/extern/lstm
 
-# COPY --from=troute_build /tmp/troute_url /ngen/troute_url
-# COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
+#COPY --from=troute_build /tmp/troute_url /ngen/troute_url
+#COPY --from=ngen_build /tmp/ngen_url /ngen/ngen_url
 
 # Install runtime-only dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -137,6 +145,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set environment for ngen
 RUN ln -s /dmod/bin/ngen /usr/local/bin/ngen
 ENV FC=gfortran NETCDF=/usr/include PATH=$PATH:/usr/bin/mpich
+# [LSTM-Update]
+ENV UV_COMPILE_BYTECODE=1
+
+# Set softlink for mpi (required for spotpy calibration)
+#RUN ln -s /usr/lib/x86_64-linux-gnu/libmpi.so /usr/lib/x86_64-linux-gnu/libmpi.so.12
 
 # Install firefox for interactive workflows
 RUN mkdir -p /opt/firefox && \
@@ -157,11 +170,12 @@ RUN pip3 install uv && \
     uv pip install --system --no-cache-dir \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     jupyterlab_vim \
-    teehr==0.4.* \
+    teehr==0.5.* \
     git-lfs==1.6 \
     #---------------------------------------------
     # 2i2c: Install GIS packages
     #---------------------------------------------
+    dask==2025.12.0 distributed==2025.12.0 \
     spatialpandas \
     easydev \
     colormap \
@@ -182,10 +196,13 @@ RUN pip3 install uv && \
     #---------------------------------------------
     git+https://github.com/hydroshare/nbfetch.git@hspuller-auth \
     dask_labextension \
+    hsfiles-jupyter \
     #---------------------------------------------
-    # Ngen: calibration
+    # Ngen: calibration spotpy
     #---------------------------------------------
     spotpy \
+    # mpi4py \
+    # ipyparallel \
     #---------------------------------------------
     # 2i2c: To enable venv kernels in Jupyter
     #---------------------------------------------
@@ -193,8 +210,10 @@ RUN pip3 install uv && \
     #---------------------------------------------
     # Misc:
     #   - TEEHR: Download the required JAR files for Spark to interact with AWS S3.
+    #   - Link hsfiles-jupyter to JupyterLab
     #---------------------------------------------
-    && uv run python -m teehr.utils.install_spark_jars
+    #&& uv run python -m teehr.utils.install_spark_jars \
+    && uv run python -m hsfiles_jupyter
 
 RUN echo "/dmod/shared_libs/" >> /etc/ld.so.conf.d/ngen.conf && ldconfig -v
 
@@ -226,18 +245,26 @@ RUN uv venv --system-site-packages \
           /ngen/ngen/extern/lstm --extra-index-url https://download.pytorch.org/whl/cpu \
     && uv pip install --no-cache-dir \
     /tmp/*.whl \
-    #netCDF4==1.6.3 \
-    netCDF4>=1.6.5 \
+    'netCDF4>=1.6.5' \
     numpy==$(/dmod/bin/ngen --info | grep -m 1 -e 'NumPy Version: ' | cut -d ':' -f 2 | uniq | xargs) \
     'pydantic<2' \
+    #---------------------------------------------
+    # Ngen: calibration ngen-cal
+    #---------------------------------------------
+    "git+https://github.com/noaa-owp/ngen-cal@master#egg=ngen_cal&subdirectory=python/ngen_cal" \
     #---------------------------------------------
     # Setup and install ngiab_data_preprocess module to allow preparing data for ngiab
     #   - [Optional] Download default hydrofabric for ngiab_data_preprocess
     #---------------------------------------------
-    ngiab_data_preprocess==4.2.* \
+    ngiab_data_preprocess==4.6.7 \
+    'pandas>=2.0,<3.0' \
     #&& uv run python -c "from data_sources.source_validation import download_and_update_hf; \
     #			 download_and_update_hf();" \
     && rm -rf /tmp/*.whl
+
+# [LSTM-Update] Replace the noaa-owp example weights with jmframes
+RUN rm -rf /ngen/ngen/extern/lstm/trained_neuralhydrology_models
+COPY --from=lstm_weights /lstm_weights/trained_neuralhydrology_models /ngen/ngen/extern/lstm/trained_neuralhydrology_models
 
 # Make this venv available as JupyterHub kernel
 # ENV PATH=/ngen/.venv/bin:$PATH
