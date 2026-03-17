@@ -1,6 +1,6 @@
 [project]
 name = "pyngiab"
-version = "1.0.0"
+version = "1.1.1"
 #dynamic = ["version"]
 description = "A Python library for geospatial and hydrological data processing using NGIAB"
 readme = "README.md"
@@ -22,8 +22,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fbaig/ciroh_pyngiab"
-Repository = "https://github.com/fbaig/ciroh_pyngiab"
+Homepage = "https://github.com/CIROH-UA/ciroh_pyngiab"
+Repository = "https://github.com/CIROH-UA/ciroh_pyngiab"
 
 [build-system]
 requires = ["setuptools>=77.0.3", "setuptools_scm"]
