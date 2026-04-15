@@ -1,6 +1,8 @@
-import paramiko
 import re
 import time
+import paramiko
+import subprocess
+from pathlib import Path
 
 class PyNGIABHPC:
     def __init__(self, host, username, key_path, port=22):
@@ -9,19 +11,46 @@ class PyNGIABHPC:
         self.key_path = key_path
         self.port = port
 
+        self._generate_ssh_keypair()
+
+    def _generate_ssh_keypair(self):
+        if not Path('/home/jovyan/.ssh/id_rsa.pub').exists():
+            subprocess.run([
+                "ssh-keygen",
+                "-f", "/home/jovyan/.ssh/id_rsa",
+                "-N", ""
+            ])
+        '''
+        subprocess.run([
+            "ssh-copy-id",
+            "-i", "/home/jovyan/.ssh/id_rsa.pub"
+            f'{self.username}@{self.host}'
+        ])
+        '''
+        pass
+    def _manual_setup_instructions(self):
+        return ''' General setup instructions (will only work for HPC with password access)
+        (1) Your public key is generated in /home/jovyan/.ssh/id_rsa.pub
+        (2) In terminal run 'ssh-copy-id -i /home/jovyan/.ssh/id_rsa.pub user@hpc_host'
+        (3) Put your password one time and you should be good to go
+        '''
+
     def _connect(self):
         key = paramiko.RSAKey.from_private_key_file(self.key_path)
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            client.connect(
+                hostname=self.host,
+                port=self.port,
+                username=self.username,
+                pkey=key,
+            )
+            return client
+        except Exception as e:
+            raise ConnectionError('Unable to connect to remote host. Please follow instructions for one time setup.\n' + self._manual_setup_instructions())
 
-        client.connect(
-            hostname=self.host,
-            port=self.port,
-            username=self.username,
-            pkey=key,
-        )
-        return client
 
     def submit_job(self, script_content=None):
         client = self._connect()
@@ -93,14 +122,22 @@ echo "Running on $(hostname)"
 {command}
 """
 
-#######################################################
-    
 class PyNGIABHPC_Anvil(PyNGIABHPC):
-    def __init__(self, username, allocation, key_path='/home/jovyan/.ssh/id_rsa', port=22):
+    def __init__(self,
+                 username,
+                 allocation,
+                 key_path='/home/jovyan/.ssh/id_rsa',
+                 port=22):
         host = 'anvil.rcac.purdue.edu'
         self._allocation=allocation
         super().__init__(host, username, key_path, port)
+        pass
 
+    def _manual_setup_instructions(self):
+        return ''' Anvil setup instructions
+        (1) Your public key is generated in /home/jovyan/.ssh/id_rsa.pub
+        (2) Follow instructions at https://www.rcac.purdue.edu/knowledge/anvil/access/login/sshkeys
+        '''
     def create_job_script(self, command, cpus=2, mem="4G", time="00:15:00"):
         return f"""#!/bin/bash
 #SBATCH --job-name=pyngiab-job
