@@ -63,3 +63,9 @@ echo "<ROBOT_TOKEN>" | apptainer registry login --username "<myrepo+bot>" --pass
 ```
 apptainer push singularity_ngen.sif oras://quay.io/<user>/<repo>:latest
 ```
+3. Test remote image on Anvil
+```
+sinteractive -p shared --nodes=1 --ntasks=1 -A <allocation>
+apptainer shell oras://quay.io/fbaig25/ngiab-hpc
+/dmod/bin/ngen
+```
