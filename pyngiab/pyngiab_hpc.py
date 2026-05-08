@@ -101,8 +101,8 @@ class PyNGIABHPC:
         client = self._connect()
 
         try:
-            # Default Slurm output file pattern
-            stdout_file = f"slurm-{job_id}.out"
+            # Default ngiab output file pattern
+            stdout_file = f"ngiab_{job_id}.out"
             stdin, stdout, stderr = client.exec_command(f"cat {stdout_file}")
 
             return stdout.read().decode()
@@ -113,7 +113,7 @@ class PyNGIABHPC:
     def create_job_script(self, command, cpus=2, mem="4G", time="00:15:00"):
         return f"""#!/bin/bash
 #SBATCH --job-name=jupyter-job
-#SBATCH --output=slurm-%j.out
+#SBATCH --output=ngiab_%j.out
 #SBATCH --cpus-per-task={cpus}
 #SBATCH --mem={mem}
 #SBATCH --time={time}
@@ -139,14 +139,36 @@ class PyNGIABHPC_Anvil(PyNGIABHPC):
         (2) Follow instructions at https://www.rcac.purdue.edu/knowledge/anvil/access/login/sshkeys
         '''
     def create_job_script(self, command, cpus=2, mem="4G", time="00:15:00"):
-        return f"""#!/bin/bash
-#SBATCH --job-name=pyngiab-job
-#SBATCH --output=slurm-%j.out
-#SBATCH --cpus-per-task={cpus}
-#SBATCH --mem={mem}
-#SBATCH --time={time}
-#SBATCH --account={self._allocation}
+        content = Path('../resources/ngiab_anvil.sbatch').read_text(encoding='utf-8')
 
-echo "Running on $(hostname)"
-{command}
-"""
+        # Replace cpus line
+        content = content.replace(
+            '#SBATCH --cpus-per-task=1',
+            f'#SBATCH --cpus-per-task={cpus}'
+        )
+
+        # Replace mem line
+        content = content.replace(
+            '#SBATCH --mem=2G',
+            f'#SBATCH --mem={mem}'
+        )
+
+        # Replace time line
+        content = content.replace(
+            '#SBATCH --time=00:05:00',
+            f'#SBATCH --time={time}'
+        )
+
+        # Replace account
+        content = content.replace(
+            "#SBATCH --account=",
+            f'#SBATCH --account={self._allocation}'
+        )
+
+        # Replace CMD line
+        content = content.replace(
+            'CMD="/dmod/bin/ngen"',
+            f'CMD="{command}"'
+        )
+
+        return content
