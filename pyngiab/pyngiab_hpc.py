@@ -122,6 +122,8 @@ echo "Running on $(hostname)"
 {command}
 """
 
+########################################
+    
 class PyNGIABHPC_Anvil(PyNGIABHPC):
     def __init__(self,
                  username,
@@ -136,7 +138,7 @@ class PyNGIABHPC_Anvil(PyNGIABHPC):
     def _manual_setup_instructions(self):
         return ''' Anvil setup instructions
         (1) Your public key is generated in /home/jovyan/.ssh/id_rsa.pub
-        (2) Follow instructions at https://www.rcac.purdue.edu/knowledge/anvil/access/login/sshkeys
+        (2) Follow instructions at https://docs.rcac.purdue.edu/userguides/anvil/getting-started/#ssh-keys
         '''
     def create_job_script(self, command, cpus=2, mem="4G", time="00:15:00"):
         content = Path('../resources/ngiab_anvil.sbatch').read_text(encoding='utf-8')
@@ -172,3 +174,18 @@ class PyNGIABHPC_Anvil(PyNGIABHPC):
         )
 
         return content
+########################################
+
+class PyNGIABHPC_ACES(PyNGIABHPC):
+    def __init__(self,
+                 username,
+                 allocation,
+                 key_path='/home/jovyan/.ssh/id_rsa',
+                 port=22):
+        '''
+        TAMU ACES cannot pull singularity image because
+          - Login nodes do not have singularity/apptainer
+          - And compute nodes do not allow outgoing connections
+        '''
+        raise NotImplementedError('TAMU ACES not implemented due to technical infeasibility')
+        
