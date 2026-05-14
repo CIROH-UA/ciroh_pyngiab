@@ -188,4 +188,11 @@ class PyNGIABHPC_ACES(PyNGIABHPC):
           - And compute nodes do not allow outgoing connections
         '''
         raise NotImplementedError('TAMU ACES not implemented due to technical infeasibility')
-        
+        pass
+
+class PyNGIABHPC_(PyNGIABHPC):
+    def __init__(self,
+                 username,
+                 allocation,
+                 key_path='/home/jovyan/.ssh/id_rsa',
+                 port=22):
