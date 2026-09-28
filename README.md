@@ -1,6 +1,6 @@
 # PyNGIAB
 
-PyNGIAB is designed to allow execution of an end-to-end hydrologic modeling workflow using the [Nextgen framework](https://github.com/NOAA-OWP/ngen) in Python from a Jupyter environment. To this end, there are two major components of PyNGIAB
+PyNGIAB is designed to allow execution of an end-to-end hydrologic modeling workflow using the [Nextgen framework](https://github.com/NOAA-OWP/ngen) in Python from a Jupyter environment. To this end, there are two major components of PyNGIAB.
 
 ---
 ## 1. JupyterHub compatible NGIAB.
@@ -77,3 +77,10 @@ test_ngiab.run()
 test_ngiab_serial = PyNGIAB(data_dir, serial_execution_mode=True)
 test_ngiab_serial.run()
 ```
+
+## Citing this software
+Ayman Nassar, David G. Tarboton, Furqan Baig, et al. A cloud-based JupyterHub platform for community research with the NextGen water resources modeling framework. Environmental Modelling & Software, page 107031, August 2026. ISSN 1364-8152. doi: 10.1016/j.envsoft.2026.107031. URL https://www.sciencedirect.com/science/article/pii/S1364815226001787.
+
+| | |
+| --- | --- |
+| ![CIROH Logo](https://github.com/CIROH-UA/NGIAB-CloudInfra/blob/main/docs/img/ciroh-bgsafe.png) | Funding for this project was provided by the National Oceanic & Atmospheric Administration (NOAA), awarded to the Cooperative Institute for Research to Operations in Hydrology (CIROH) through the NOAA Cooperative Agreement with The University of Alabama (NA22NWS4320003). |
